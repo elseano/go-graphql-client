@@ -1,11 +1,17 @@
 package graphql
 
+import (
+	"io"
+	"net/http"
+)
+
 // OptionType represents the logic of graphql query construction
 type OptionType string
 
 const (
 	// optionTypeOperationName is private because it's option is built-in and unique
 	optionTypeOperationName      OptionType = "operation_name"
+	optionTypeCustomErrorDecoder OptionType = "custom_error_decoder"
 	OptionTypeOperationDirective OptionType = "operation_directive"
 )
 
@@ -35,4 +41,22 @@ func (ono operationNameOption) String() string {
 // OperationName creates the operation name option
 func OperationName(name string) Option {
 	return operationNameOption{name}
+}
+
+type ErrorDecoder func(resp *http.Response, reader io.ReadSeeker) (Errors, error)
+
+type customErrorDecoder struct {
+	decoder ErrorDecoder
+}
+
+func (ced customErrorDecoder) Type() OptionType {
+	return optionTypeCustomErrorDecoder
+}
+
+func (ced customErrorDecoder) String() string {
+	return "error_decoder"
+}
+
+func CustomErrorDecoder(decoder ErrorDecoder) Option {
+	return customErrorDecoder{decoder}
 }

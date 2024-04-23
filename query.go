@@ -16,6 +16,7 @@ import (
 type constructOptionsOutput struct {
 	operationName       string
 	operationDirectives []string
+	errorDecoder        ErrorDecoder
 }
 
 func (coo constructOptionsOutput) OperationDirectivesString() string {
@@ -35,6 +36,8 @@ func constructOptions(options []Option) (*constructOptionsOutput, error) {
 			output.operationName = option.String()
 		case OptionTypeOperationDirective:
 			output.operationDirectives = append(output.operationDirectives, option.String())
+		case optionTypeCustomErrorDecoder:
+			output.errorDecoder = option.(customErrorDecoder).decoder
 		default:
 			return nil, fmt.Errorf("invalid query option type: %s", option.Type())
 		}

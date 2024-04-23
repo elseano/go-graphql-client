@@ -194,7 +194,7 @@ func (c *Client) request(ctx context.Context, query string, variables map[string
 
 	// copy the response reader for debugging
 	var respReader *bytes.Reader
-	if c.debug {
+	if c.debug || (options != nil && options.errorDecoder != nil) {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, nil, nil, Errors{newError(ErrJsonDecode, err)}
@@ -221,6 +221,19 @@ func (c *Client) request(ctx context.Context, query string, variables map[string
 	var rawData []byte
 	if out.Data != nil && len(*out.Data) > 0 {
 		rawData = []byte(*out.Data)
+	}
+
+	// if custom error decoder, use that
+	if rawData == nil {
+		if options != nil && options.errorDecoder != nil {
+			respReader.Seek(0, io.SeekStart)
+			result, err := options.errorDecoder(resp, respReader)
+			if err != nil {
+				return nil, resp, respReader, Errors{newError(ErrErrorDecoder, err)}
+			}
+
+			return nil, resp, respReader, result
+		}
 	}
 
 	if len(out.Errors) > 0 {
@@ -441,6 +454,7 @@ const (
 	ErrRequestError  = "request_error"
 	ErrJsonEncode    = "json_encode_error"
 	ErrJsonDecode    = "json_decode_error"
+	ErrErrorDecoder  = "error_decoder_error"
 	ErrGraphQLEncode = "graphql_encode_error"
 	ErrGraphQLDecode = "graphql_decode_error"
 )
